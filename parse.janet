@@ -106,6 +106,25 @@
   (def c (in (state :code) (state :index)))
 
   (cond
+    ###< continue non-complete symbols etc
+
+    (state :newline)
+    (newline-mode state)
+
+    (state :comment)
+    (pred-mode state :comment comment-pred)
+
+    (state :number)
+    (pred-mode state :number number-pred)
+
+    (state :whitespace)
+    (pred-mode state :whitespace whitespace-pred)
+
+    (state :symbol)
+    (pred-mode state :symbol symbol-pred)
+
+    ###>
+
     (= c (chr `"`))
     (string-mode state)
 
@@ -175,24 +194,28 @@
 
 (defn finalize-pending
   [state]
-  (def variants [:symbol :whitespace :number :comment])
+  (def variants [:symbol :whitespace :number :comment :newline])
   (loop [v :in variants
          :when (get state v)]
     (finalize state v))
   state)
 
 (defn tokenize
-  [code]
-  (def state @{:tokens @[]
-               :index 0
-               :code code})
+  [state]
   (default-mode state)
   (dbg "done %p" state)
   state)
 
+(defn default-tokenize-state
+  [code]
+  @{:tokens @[]
+    :index 0
+    :code code})
+
 (defn tokenize-finalize
   [code]
-  (let [tokens (-> code
+  (def state (default-tokenize-state code))
+  (let [tokens (-> state
                    tokenize
                    finalize-pending
                    (get :tokens))]
@@ -320,5 +343,27 @@
                              (tokenize-finalize code)))))
   #
 )
+
+# should be equal even if code is sliced in different ways
+(t/test-deep=
+  (let [state (default-tokenize-state @"ab ")]
+    (tokenize state)
+    (update state :code buffer/push-string "c d")
+    (tokenize state))
+
+  (let [state (default-tokenize-state @"ab c d")]
+    (tokenize state)
+    (tracev state)))
+
+(loop [i :range [0 100]]
+  (let [rng (math/rng)
+        code (string (math/rng-buffer rng 1000))]
+    (t/test=
+      code
+      (tokens->string
+        code
+        (tokenize-finalize code))
+
+      (string "rng buffer with seed " rng " did not tokenize properly"))))
 
 (t/print-result)
