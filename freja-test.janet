@@ -42,18 +42,20 @@
        (,test-failure ,line ,column ,(if err err (string/format "%j" x))))))
 
 (defmacro test-deep=
-  [form1 form2]
+  [form1 form2 &opt err]
   (def [l c] (tuple/sourcemap (dyn *macro-form* ())))
 
   (def v1 (gensym))
   (def v2 (gensym))
+
+  (default err ~(string/format "\n  %.40m\n  \e[31m!=\e[0m\n  %.40m" ,v1 ,v2))
 
   ~(do
      (def ,v1 ,form1)
      (def ,v2 ,form2)
      (as-macro ,test
                (deep= ,v1 ,v2)
-               (string/format "\n  %.40m\n  \e[31m!=\e[0m\n  %.40m" ,v1 ,v2)
+               ,err
                ,l ,c)))
 
 (defmacro test=
