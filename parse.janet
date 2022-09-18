@@ -24,7 +24,7 @@
       (let [l (last stack)]
         (assert l)
         (array/pop stack)
-        l))
+        (tuple ;l)))
 
     :open-square-brackets
     (do (update state :index inc)
@@ -37,7 +37,7 @@
       (let [l (last stack)]
         (assert l)
         (array/pop stack)
-        l))
+        (tuple/brackets ;l)))
 
     [:symbol _]
     (let [sym (symbol (string/slice code ;(tok/token->slice tokens (state :index))))]
@@ -49,7 +49,6 @@
       nil)
 
     [:number x]
-
     (let [num (scan-number (string/slice code ;(tok/token->slice tokens (state :index))))]
       (update state :index inc)
       num)
